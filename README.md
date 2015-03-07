@@ -1,5 +1,5 @@
 # SCE
-System Configuration Editor
+## System Configuration Editor
 
 SCE - System Configuration Editor
 
@@ -13,15 +13,15 @@ a multi file editor to open each individual file, SCE automatically
 searches for an opens these files and displays them in a cascading
 windows.
 
-Helping with SCE
+# Helping with SCE
 
-BUG!!!!
+## BUG!!!!
 
 If you have found a repeatable bug, please contact me and provide the
 steps you used so that I can duplicate the issue. Please include the OS
 you are running on as well as any pertinent hardware information.
 
-Code Assistance
+## Code Assistance
 
 Cool! That's great as I have a family and a job. Details on how to
 contribute are located in the CONTRIB.md
