@@ -3,11 +3,26 @@
 # 
 #
 #
-ASM=a86
-ARC=PKZIP
+.autodepend
+.swap
+
+!if !$d(TPROOT)
+TPROOT=\TP7
+!endif
+
+!if !$d(ARCTOOL)
+ARCTOOL=\PKZIP
+!endif
+
+!if !$d(CCROOT)
+CCROOT=\TC
+!endif
+
+#ASM=a86
+ARC=$(ARCTOOL)\PKZIP
 ARCOPTIONS=
-CC=\tc\bin\tcc
-PC=\tp7\bin\tpc
+#CC=$(CCROOT)\bin\tcc
+PC = $(TPROOT)\bin\tpc
 COPTIONS=-c -ml -wrvl -p -k- -r- -u- -zCCODE -zP -zA -zRCONST -zS -zT -zDDATA -zG -zB
 POPTIONS=/Uc:\tp7\units
 !if !$d(CCONFIG)

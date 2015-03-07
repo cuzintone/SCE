@@ -47,8 +47,8 @@ const
   RCSRev : String = '$Revision: 1.0 $';
   ID : String = 'System Configuration Editor';
   Copyright : String = 'Copyright (C) 2015 AGE Software';
-  sBanner = '%s - Version %d.%d.%06d';
-  VERSION : TVersion = (OSName:@ID;Maj:1;Min:0;Rev:150227);
+  sBanner = '%s - v%d.%d.%06d';
+  VERSION : TVersion = (OSName:@ID;Maj:1;Min:0;Rev:150303);
   cmAbout        = 100;
   cmClipShow     = cmAbout + 1;
   cmHelp         = cmClipShow + 1;

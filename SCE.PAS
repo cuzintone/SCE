@@ -26,7 +26,7 @@ Initial revision
 
         ----------------------------------
 
-        Filename: SCW.PAS
+        Filename: SCE.PAS
         Main program
 }
 

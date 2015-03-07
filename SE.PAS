@@ -1,63 +1,63 @@
-{
-$Id: SEUI.PAS 1.0 2003/01/15 21:13:49 tony Exp tony $
-$Log: SEUI.PAS $
-Revision 1.0  2003/01/15 21:13:49  tony
-Initial revision
+(*
+ $Id: se.pas 1.12 2003/01/05 05:56:21 Tony Exp Tony $
+ $Log: se.pas $
+ Revision 1.12  2003/01/05 05:56:21  Tony
+ *** empty log message ***
 
-        2015-03-03   adg   Move Hints into the private section of this unit
-                           since there is no code that needs to manipulate
-                           it directly. The only exposed type is the TSysEdit
+ Revision 1.11  2002/01/18 09:30:49  tony
+ Fixed code
 
+ Revision 1.10  2002/01/08 17:32:20  tony
+ Release to manufacture
 
+ Revision 1.9  2001/09/19 04:45:31  tony
+ Added support for Win NT configuration file loading
 
-        System Configuration System Configuration Editor
-        Version 1.0
-        Written by Antony Gordon
-        Copyright 2003 AGE Software
+ Revision 1.8  2001/09/13 06:13:52  tony
+ Tweaked code
 
-        ----------------------------------
+ Revision 1.7  2001/09/04 15:40:44  tony
+ Fixed menu bar, status bar, cleaned up code
 
-    This file is part of System Configuration Editor.
-    System Configuration Editor is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-    System Configuration Editor is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-    You should have received a copy of the GNU General Public License
-    along with System Configuration Editor.  If not, see <http://www.gnu.org/licenses/>.
+ Revision 1.6  2001/08/24 08:36:32  tony
+ Added help hints and color selection dialog
 
-        ----------------------------------
+ Revision 1.5  2001/08/17 02:43:51  tony
+ Cleaned up command line parsing routine
+
+ Revision 1.4  2001/08/16 09:45:03  tony
+ Updated revision code, fixed command line parsing routines, added
+ usage information.
 
 
-        Filename: SEUI.PAS
-        Contains Turbo Vision routines
-}
+ Revision 1.3  2001/08/15 19:21:55  tony
+ Updated revision code and fixed /B switch function so that the backup
+ flag is actually turned off
 
-unit SEUI;
+ Revision 1.2  2001/08/14 17:05:33  tony
+ Added RCSID line to source
 
-interface
+ Revision 1.1  2001/08/13 15:57:25  tony
+ Initial revision
 
-uses Strings, ColorSel, App, Editors, StdDlg, Dialogs, Memory, MsgBox,
-     Objects, Menus, Drivers, Views;
 
-type
-    TSysEdit = object(TApplication)
-             AboutBox : PDialog;
-             constructor Init;
-             procedure InitStatusLine; virtual;
-             procedure InitMenuBar; virtual;
-             procedure HandleEvent(var Event : TEvent); virtual;
-             procedure About;
-             procedure ColorSelDialog;
-             procedure OutOfMemory; virtual;
-    end;
+        System Editor
+        Version 1.00
 
-implementation
+        Copyright (C) AGE Software
+        All rights reserved
 
-uses Dos, SeConst;
+        Purpose: Full screen system editor.
+        FILENAME: SE.PAS
+
+
+
+*)
+{$M 8192,8192,655360}
+{$X+,S-}
+
+
+uses Dos, Strings, ColorSel, App, Editors, StdDlg, Dialogs, Memory, MsgBox, Objects, Menus, Drivers, Views;
 
 type
   PHintStatusLine = ^THintStatusLine;
@@ -65,12 +65,158 @@ type
     function Hint (AHelpCtx : Word) : String; virtual;
   end;
 
+  TSysEdit = object(TApplication)
+    AboutBox : PDialog;
+    constructor Init;
+    procedure InitStatusLine; virtual;
+    procedure InitMenuBar; virtual;
+    procedure HandleEvent(var Event : TEvent); virtual;
+    procedure About;
+    procedure ColorSelDialog;
+  end;
+
+  TVersion = record
+    OSName : PString;
+    Maj, Min, Rev : longint;
+  end;
+
+const
+  RCSID : String = '$Id: se.pas 1.12 2003/01/05 05:56:21 Tony Exp Tony $';
+  RCSRev : String = '$Revision: 1.12 $';
+  ID : String = 'FreeDOS SysEdit';
+  Copyright : String = 'Copyright (C) 2001-2003 AGE Software';
+  sBanner = '%s - Version %d.%d (Build %04d LeSabre)';
+  VERSION : TVersion = (OSName:@ID;Maj:1;Min:0;Rev:0112);
+  cmAbout        = 100;
+  cmClipShow     = cmAbout + 1;
+  cmHelp         = cmClipShow + 1;
+  cmPrint        = cmHelp + 1;
+  cmOptionsVideo = cmPrint + 1;
+  cmOptionsSave  = cmOptionsVideo + 1;
+  cmOptionsLoad  = cmOptionsSave + 1;
+  cmColors       = cmOptionsLoad + 1;
+
+  hcPrint        = 1000;
+  hcFind         = hcPrint + 1;
+  hcReplace      = hcFind + 1;
+  hcSearchAgain  = hcReplace + 1;
+  hcOptionsVideo = hcSearchAgain + 1;
+  hcAbout        = hcOptionsVideo + 1;
+  hcClipShow     = hcAbout + 1;
+  hcColors       = hcClipShow + 1;
+  hcAboutDlg     = hcColors + 1;
+  hcColorDlg     = hcAboutDlg + 1;
+
+  hcFileMenu     = 2000;
+  hcEditMenu     = hcFileMenu + 1;
+  hcSearchMenu   = hcEditMenu + 1;
+  hcOptionsMenu  = hcSearchMenu + 1;
+  hcWindowMenu   = hcOptionsMenu + 1;
+  hcHelpMenu     = hcWindowMenu + 1;
+
+
+  WinNum : byte = 1;
+  HeapSize = 48 * (1024 div 16);    (* 48K buffer *)
 
 
 var
   ClipWindow : PEditWindow;  (* Create clipboard window *)
   Editor     : TSysEdit;
+  Mono, BW   :  Boolean;
+  i          : byte;
+  S          : String;
+  progname   : string[8];
+  P          : Pchar;
 
+procedure Usage;
+
+begin
+  FormatStr(S, sBanner, VERSION);
+  PrintStr(S);
+  PrintStr(#9+Copy(RCSRev,2,(Length(RCSRev) - 2)));
+  PrintStr(#13#10#13#10'Editor for system configuration files'#13#10#13#10);
+  PrintStr(progname+' [/B] [/BW] [/M] [/?]'#13#10#13#10);
+  PrintStr('  /B   - turns off the auto backup feature'#13#10);
+  PrintStr('  /BW  - show in black and white on a color monitor'#13#10);
+  PrintStr('  /M   - force monochrome mode'#13#10);
+  PrintStr('  /?   - displays this help screen'#13#10);
+end;
+
+function GetProgName(S : String) : string;
+var
+  D : DirStr;
+  N : NameStr;
+  E : ExtStr;
+begin
+  FSplit(S, D, N, E);
+  GetProgName := N;
+end;
+
+{
+
+This portion of unused code to display OS information
+
+procedure OSInfo(var p : TVersion; var S : String);
+
+var EDC_Product : word;
+
+begin
+  EDC_Product := is_drdos;
+  if EDC_Product <> 0 then
+  begin
+    case EDC_Product of
+      $1060 : S := 'DOS Plus';
+      $1063 : S := 'DR DOS 3.41';
+      $1064 : S := 'DR DOS 3.42';
+      $1065 : S := 'DR DOS 5.0';
+      $1067 : S := 'DR DOS 6.0';
+      $1070 : S := 'DR DOS PalmDOS';
+      $1071 : S := 'DR DOS 6.0 March ''93 update';
+      $1072 : S := 'Novell DOS 7.0';
+      $1432 : S := 'Concurrent PC-DOS 3.2';
+      $1441 : S := 'Concurrent DOS 4.1';
+      $1450 : S := 'Concurrent DOS/XM 5.0 or Concurrent DOS/386 1.1';
+      $1460 : S := 'Concurrent DOS/XM 6.0 or Concurrent DOS/386 2.0';
+      $1462 : S := 'Concurrent DOS/XM 6.2 or Concurrent DOS/386 3.0';
+      $1466 : S := 'DR Multiuser DOS 5.1';
+      $1467 : S := 'Concurrent DOS 5.1';
+      else  S := 'Unknown DR DOS version';
+    end;
+  end;
+  case GetOEMNumber of
+    $00 : S :='IBM ';
+    $01 : S :='Compaq ';
+    $02 : S :='Microsoft MS-';
+    $04 : S :='AT&T ';
+    $05 : S :='ZDS (Zenith Electronics) ';
+    $06 : S :='HP ';
+    $07 : S :='ZDS (Groupe Bull) ';
+    $0D : S :='Packard Bell ';
+    $16 : S :='DEC ';
+    $23 : S :='Olivetti ';
+    $28 : S :='TI ';
+    $29 : S :='Toshiba ';
+    $33 : S :='Novell (Windows/386 device IDs only) ';
+    $34 .. $35 :
+      S :='MS Multimedia Systems (Windows/386 device IDs only) ';
+    $4D : S :='HP ';
+    $5E : S :='Rx';
+    $66 : S :='PTS-';
+    $99 : S :='General Software''s Embedded ';
+    $EE : S :='DR ';
+    $EF : S :='Novell ';
+    $FD : S :='Free';
+    $FF : S :='Microsoft MS-';
+    else
+  end;
+  S:= S +'DOS';
+  p.Maj := Lo(DosVersion);
+  p.Min := Hi(DosVersion);
+end;
+
+This code block may be removed at a later time
+
+}
 
 function THintStatusLine.Hint(AHelpCtx : Word) : String;
 begin
@@ -127,7 +273,6 @@ begin
   DeskTop^.GetExtent(R);
   P := New(PEditWindow, Init(R, theFile, WinNum));
   if not Visible then P^.Hide;
-  { P^.Palette := wpGrayWindow; }
   OpenEditor := PEditWindow(Application^.InsertWindow(P));
   inc(WinNum);
 end;
@@ -170,18 +315,16 @@ constructor TSysEdit.Init;
 *)
 var
   i : byte;
-  cmdSet : TCommandSet;
 
 
 begin
-  cmdSet := [cmOpen, cmSave, cmSaveAs, cmCut, cmCopy, cmPaste, cmClear,
-    cmUndo, cmPrint, cmFind, cmReplace, cmSearchAgain];
   MaxHeapSize := HeapSize;
   inherited Init;
   if Mono then SetScreenMode(smMono);
   if BW then SetScreenMode(smBW80);
   EditorFlags := EditorFlags or efBackupFiles;
-  DisableCommands(cmdSet);
+  DisableCommands([cmOpen, cmSave, cmSaveAs, cmCut, cmCopy, cmPaste, cmClear,
+    cmUndo, cmPrint, cmFind, cmReplace, cmSearchAgain]);
   EditorDialog := StdEditorDialog;
   ClipWindow := OpenEditor('', False);
   dec(WinNum);
@@ -190,6 +333,7 @@ begin
     Clipboard := ClipWindow^.Editor;
     Clipboard^.CanUndo := False;
   end;
+  About;
   OpenConfigFiles;
   Cascade;
 end;
@@ -325,14 +469,54 @@ begin
   ClearEvent(Event);
 end;
 
-procedure TSysEdit.OutOfMemory;
+{ Main execution portion }
 begin
-  MessageBox('Not enough memory for this operation.',
-    nil, mfError + mfOkButton);
-end;
+(*
+  Let's make the following assumptions -
+     1. You can't directly write to video memory
+     2. We are using a color video adapter
+     3. We are in color mode
+*)
 
-{$IFDEF Debug}
-begin
-  writeln('Loading user interface module...');
-{$ENDIF}
+  BW := false;
+  Mono := false;
+  if Lo(DosVersion) < 3 then begin
+    PrintStr('System Config Editor requires DOS 3.0 or higher'#13#10);
+    halt(255);
+  end;
+
+  if paramstr(0) <> '' then progname := GetProgName(paramstr(0));
+  if paramcount > 0 then
+    for i := 1 to paramcount do begin
+      StrPCopy(P, paramstr(i));
+      StrUpper(P);
+      inc(P);
+      case char( P^) of
+        'B' :
+          begin
+            inc (P);
+            if char(P^) = 'W' then
+            BW := true
+            else
+             EditorFlags := EditorFlags xor efBackupFiles;
+            end;
+        'M' : Mono := true;
+        '?', 'H' :
+          begin
+            Usage;
+            halt;
+          end;
+        'I' :
+         begin
+           FormatStr(S, sBanner, VERSION);
+           PrintStr(S);
+           PrintStr(#9+Copy(RCSRev,2,(Length(RCSRev) - 2))+#13#10);
+           halt;
+         end;
+        else;
+      end;
+    end;
+  Editor.Init;
+  Editor.Run;
+  Editor.Done;
 end.
