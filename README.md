@@ -5,7 +5,8 @@ SCE - System Configuration Editor
 
 System Configuration Editor is a DOS utility built using Turbo Pascal
 7.0 and Turbo Vision as tool to edit MS/PC/Free DOS configuration files,
-i.e., AUTOEXEC.BAT, CONFIG.SYS, and FDCONFIG.SYS.
+i.e., AUTOEXEC.BAT, CONFIG.SYS, and FDCONFIG.SYS. If you have Windows installed, 
+it also edits PROTOCOL.INI, SYSTEM.INI, and WIN.INI.
 
 SCE allows you to see at a glance all of your configuration files. Most
 system configuration changes happen in multiple files. While you can use
