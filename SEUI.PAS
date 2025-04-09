@@ -41,19 +41,34 @@ unit SEUI;
 interface
 
 uses Strings, ColorSel, App, Editors, StdDlg, Dialogs, Memory, MsgBox,
-     Objects, Menus, Drivers, Views;
+     Objects, Menus, Drivers, Views, EventLog;
 
 type
-    TSysEdit = object(TApplication)
-             AboutBox : PDialog;
-             constructor Init;
-             procedure InitStatusLine; virtual;
-             procedure InitMenuBar; virtual;
-             procedure HandleEvent(var Event : TEvent); virtual;
-             procedure About;
-             procedure ColorSelDialog;
-             procedure OutOfMemory; virtual;
-    end;
+  PSysEdit = ^TSysEdit;
+  TSysEdit = object(TApplication)
+    Logger : PEventLog;
+    ClipWindow : PEditWindow;  (* Create clipboard window *)
+    BW, Mono : Boolean;
+    WinNum : byte;
+    AboutBox : PDialog;
+    constructor Init(_mono, _bw : boolean);
+    function IsBW : boolean;
+    function IsMono : boolean;
+    function GetWinNum : byte;
+    procedure SetWinNum (awinnum : byte);
+    procedure SetMono (_mono : boolean);
+    procedure SetBW (_bw : boolean);
+    procedure OpenConfigFiles;
+    procedure Idle; virtual;
+    procedure InitStatusLine; virtual;
+    procedure InitMenuBar; virtual;
+    procedure HandleEvent(var Event : TEvent); virtual;
+    procedure OutOfMemory; virtual;
+    procedure ToggleBackupFiles;
+    procedure About;
+    procedure ColorSelDialog;
+    destructor Done; virtual;
+  end;
 
 implementation
 
@@ -64,12 +79,6 @@ type
   THintStatusLine = object(TStatusLine)
     function Hint (AHelpCtx : Word) : String; virtual;
   end;
-
-
-
-var
-  ClipWindow : PEditWindow;  (* Create clipboard window *)
-  Editor     : TSysEdit;
 
 
 function THintStatusLine.Hint(AHelpCtx : Word) : String;
@@ -114,7 +123,7 @@ begin
   end;
 end;
 
-function OpenEditor(theFile: FNameStr; Visible: Boolean): PEditWindow;
+function OpenEditor(theFile: FNameStr; isClip, Visible: Boolean): PEditWindow;
 (*
 The OpenEditor is used by the event handler to actually open files. It can
 generate a new editor window, or create an editor window for an existing file
@@ -125,11 +134,15 @@ var
   R: TRect;
 begin
   DeskTop^.GetExtent(R);
-  P := New(PEditWindow, Init(R, theFile, WinNum));
+  if isClip then
+    P := New(PEditWindow, Init(R, theFile, wnNoNumber))
+  else
+    P := New(PEditWindow, Init(R, theFile, WinNum));
   if not Visible then P^.Hide;
-  { P^.Palette := wpGrayWindow; }
+   { P^.Palette := wpCyanWindow; }
   OpenEditor := PEditWindow(Application^.InsertWindow(P));
-  inc(WinNum);
+  if not isClip then
+    inc(WinNum);
 end;
 
 procedure Open(FName, Path : String);
@@ -137,62 +150,48 @@ var
   P : PathStr;
 begin
   P := FSearch(FName, Path);
-  If Length(P) <> 0 then OpenEditor(FExpand(P), true);
+  If Length(P) <> 0 then OpenEditor(FExpand(P), false, true);
 end;
 
-procedure OpenConfigFiles;
-
-var
-  D : String[3];
-  R : Registers;
-
-begin
-  Open('WIN.INI', GetEnv('PATH'));
-  Open('SYSTEM.INI', GetEnv('PATH'));
-  Open('PROTOCOL.INI', GetEnv('PATH'));
-  Open('AUTOEXEC.NT', GetEnv('PATH'));
-  Open('CONFIG.NT', GetEnv('PATH'));
-  r.ah := $19;
-  msdos(r);
-  D := chr((65+r.al))+':\';
-  Open('AUTOEXEC.BAT', D);
-  Open('CONFIG.SYS', D);
-  Open('FDCONFIG.SYS', D);
-end; (* OpenConfigFiles *)
 
 (*
   Turbo Vision Code begins here for the user interface
 *)
+procedure TSysEdit.About;
+{
+        Draws about box
+}
 
-constructor TSysEdit.Init;
-(*
-        Application initialization, sets up the heapsize and the clipboard
-*)
 var
-  i : byte;
-  cmdSet : TCommandSet;
-
+  S : String;
+  R : TRect;
 
 begin
-  cmdSet := [cmOpen, cmSave, cmSaveAs, cmCut, cmCopy, cmPaste, cmClear,
-    cmUndo, cmPrint, cmFind, cmReplace, cmSearchAgain];
-  MaxHeapSize := HeapSize;
-  inherited Init;
-  if Mono then SetScreenMode(smMono);
-  if BW then SetScreenMode(smBW80);
-  EditorFlags := EditorFlags or efBackupFiles;
-  DisableCommands(cmdSet);
-  EditorDialog := StdEditorDialog;
-  ClipWindow := OpenEditor('', False);
-  dec(WinNum);
-  if ClipWindow <> nil then
-  begin
-    Clipboard := ClipWindow^.Editor;
-    Clipboard^.CanUndo := False;
+  R.Assign(0, 0, 55, 12);
+  AboutBox := New(PDialog, Init(R, 'About System Config Editor'));
+  with AboutBox^ do begin
+    Options := Options or ofCentered;
+    HelpCtx := hcAboutDlg;
+    R.Assign(1, 4, 54, 5);
+    FormatStr(S, #3+sBanner, VERSION);
+    Insert(New(PStaticText, Init(R, S)));
+    R.Assign(1, 6, 54, 7);
+    Insert(New(PStaticText, Init(R, #3+Copyright)));
+    R.Assign(23, 8, 32, 10);
+    Insert(New(PButton, Init(R, '~C~lose', cmOK, bfDefault)));
   end;
-  OpenConfigFiles;
-  Cascade;
+  ExecuteDialog(AboutBox, nil);
+
 end;
+
+destructor TSysEdit.Done;
+begin
+
+  inherited Done;
+  Logger^.LogEvent(elInfo,'Shutting down application');
+  Dispose(Logger, Done);
+end;
+
 
 procedure TSysEdit.ColorSelDialog;
 var
@@ -214,20 +213,92 @@ begin
   end;
 end;
 
-procedure TSysEdit.InitStatusLine;
-var R : TRect;
+function TSysEdit.GetWinNum : byte;
 begin
-  GetExtent(R);                         (* get application boundaries *)
-  R.A.Y := R.B.Y - 1;                   (* set top to one above bottom *)
-  StatusLine := New(PHintStatusLine, Init(R,
-    NewStatusDef(0, 999,
-      NewStatusKey('', kbF1, cmHelp,
-      NewStatusKey('~F2~ Save', kbF2, cmSave,
-      NewStatusKey('~Alt+F3~ Close', kbAltF3, cmClose,
-      StdStatusKeys(nil)))),
-    NewStatusDef(1000, $FFFF,
-      NewStatusKey('', kbF1, cmHelp,
-      nil), nil))));
+  GetWinNum := WinNum;
+end;
+
+ procedure TSysEdit.HandleEvent;
+(*
+  Event handler code
+*)
+  procedure ChangeDir;
+  begin
+    ExecuteDialog(New(PChDirDialog, Init(cdNormal, 0)), nil);
+  end;
+
+  procedure ChangeVideo;
+  begin
+    SetScreenMode(ScreenMode xor smFont8x8);
+  end;
+
+  procedure ShowClip;
+  begin
+    ClipWindow^.Select;
+    ClipWindow^.Show;
+  end;
+
+{ Main portion of event handler }
+begin
+  inherited HandleEvent(Event);
+  if Event.What = evCommand then
+  case Event.Command of
+    cmOptionsVideo   : ChangeVideo;
+    cmColors         : ColorSelDialog;
+    cmClipShow       : ShowClip;
+    cmChangeDir      : ChangeDir;
+    cmAbout          : About;
+   else
+     exit;
+  end;
+  ClearEvent(Event);
+end;
+
+procedure TSysEdit.Idle;
+begin
+end;
+
+constructor TSysEdit.Init(_mono, _bw : boolean);
+(*
+        Application initialization, sets up the heapsize and the clipboard
+*)
+var
+  i : byte;
+  cmdSet : TCommandSet;
+
+
+begin
+  cmdSet := [cmOpen, cmSave, cmSaveAs, cmCut, cmCopy, cmPaste, cmClear,
+    cmUndo, cmPrint, cmFind, cmReplace, cmSearchAgain];
+  MaxHeapSize := 4096;
+  winNum := 1;
+  inherited Init;
+  Logger := New(PEventLog, Init('se.log', true));
+  Logger^.LogEvent(elInfo,'Application started');
+  if _mono then
+    begin
+      Mono := _mono;
+      SetScreenMode(smMono);
+      Logger^.LogEvent(elInfo,'Monochrome mode selected');
+    end;
+  if _bw then
+    begin
+      BW := _bw;
+      SetScreenMode(smBW80);
+      Logger^.LogEvent(elInfo,'Black and white mode selected');
+    end;
+
+  DisableCommands(cmdSet);
+  EditorDialog := StdEditorDialog;
+  ClipWindow := OpenEditor('', true, False);
+  if ClipWindow <> nil then
+  begin
+    Clipboard := ClipWindow^.Editor;
+    Clipboard^.CanUndo := False;
+  end;
+  OpenConfigFiles;
+  Logger^.LogEvent(elInfo,'Opening configuration files');
+  Cascade;
 end;
 
 procedure TSysEdit.InitMenuBar;
@@ -263,72 +334,83 @@ begin
     nil)))))))));
 end;
 
-procedure TSysEdit.About;
-{
-        Draws about box
-}
+procedure TSysEdit.InitStatusLine;
+var R : TRect;
+begin
+  GetExtent(R);                         (* get application boundaries *)
+  R.A.Y := R.B.Y - 1;                   (* set top to one above bottom *)
+  StatusLine := New(PHintStatusLine, Init(R,
+    NewStatusDef(0, 999,
+      NewStatusKey('', kbF1, cmHelp,
+      NewStatusKey('~F2~ Save', kbF2, cmSave,
+      NewStatusKey('~Alt+F3~ Close', kbAltF3, cmClose,
+      StdStatusKeys(nil)))),
+    NewStatusDef(1000, $FFFF,
+      NewStatusKey('', kbF1, cmHelp,
+      nil), nil))));
+end;
+
+function TSysEdit.IsBW : Boolean;
+begin
+  IsBW := (BW = true);
+end;
+
+function TSysEdit.IsMono : boolean;
+begin
+  IsMono := (Mono = True);
+end;
+
+procedure TSysEdit.OpenConfigFiles;
 
 var
-  S : String;
-  R : TRect;
+  D : String[3];
+  R : Registers;
 
 begin
-  R.Assign(0, 0, 55, 12);
-  AboutBox := New(PDialog, Init(R, 'About System Config Editor'));
-  with AboutBox^ do begin
-    Options := Options or ofCentered;
-    HelpCtx := hcAboutDlg;
-    R.Assign(1,4,54,5);
-    FormatStr(S, #3+sBanner, VERSION);
-    Insert(New(PStaticText, Init(R, S)));
-    R.Assign(1, 6, 54, 7);
-    Insert(New(PStaticText, Init(R, #3+Copyright)));
-    R.Assign(23, 8, 32, 10);
-    Insert(New(PButton, Init(R, '~C~lose', cmOK, bfDefault)));
-  end;
-  ExecuteDialog(AboutBox, nil);
+  Open('WIN.INI', GetEnv('PATH'));
+  Open('SYSTEM.INI', GetEnv('PATH'));
+  Open('PROTOCOL.INI', GetEnv('PATH'));
+  Open('AUTOEXEC.NT', GetEnv('PATH'));
+  Open('CONFIG.NT', GetEnv('PATH'));
+  Open('4DOS.INI', GetEnv('PATH'));
+  r.ah := $19;
+  msdos(r);
+  D := chr((65+r.al))+':\';
+  Open('AUTOEXEC.BAT', D);
+  Open('CONFIG.SYS', D);
+  Open('FDCONFIG.SYS', D);
+end; (* OpenConfigFiles *)
 
-end;
 
-procedure TSysEdit.HandleEvent;
-(*
-  Event handler code
-*)
-  procedure ChangeDir;
-  begin
-    ExecuteDialog(New(PChDirDialog, Init(cdNormal, 0)), nil);
-  end;
 
-  procedure ChangeVideo;
-  begin
-    SetScreenMode(ScreenMode xor smFont8x8);
-  end;
-  procedure ShowClip;
-  begin
-    ClipWindow^.Select;
-    ClipWindow^.Show;
-  end;
 
-{ Main portion of event handler }
-begin
-  inherited HandleEvent(Event);
-  if Event.What = evCommand then
-  case Event.Command of
-    cmOptionsVideo   : ChangeVideo;
-    cmColors         : ColorSelDialog;
-    cmClipShow       : ShowClip;
-    cmChangeDir      : ChangeDir;
-    cmAbout          : About;
-   else
-     exit;
-  end;
-  ClearEvent(Event);
-end;
 
 procedure TSysEdit.OutOfMemory;
 begin
   MessageBox('Not enough memory for this operation.',
     nil, mfError + mfOkButton);
+  Logger^.LogEvent(elError,'Memory allocation error');
+end;
+
+procedure TSysEdit.ToggleBackupFiles;
+begin
+  EditorFlags := EditorFlags or efBackupFiles;
+  Logger^.LogEvent(elInfo, 'Toggling backup file state');
+end;
+
+procedure TSysEdit.SetBW(_bw : boolean);
+begin
+  BW := _bw;
+end;
+
+procedure TSysEdit.SetMono(_mono : boolean);
+begin
+  Mono := _mono;
+end;
+
+procedure TSysEdit.SetWinNum(awinnum : byte);
+begin
+  WinNum := awinnum;
 end;
 
 {$IFDEF Debug}
