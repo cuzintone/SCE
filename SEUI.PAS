@@ -51,23 +51,26 @@ type
     BW, Mono : Boolean;
     WinNum : byte;
     AboutBox : PDialog;
+    procedure About;
+    procedure AdjustCommands;
+    procedure ColorSelDialog;
+    destructor Done; virtual;
     constructor Init(_mono, _bw : boolean);
+    procedure Idle; virtual;
+    procedure InitMenuBar; virtual;
+    procedure InitStatusLine; virtual;
     function IsBW : boolean;
     function IsMono : boolean;
     function GetWinNum : byte;
-    procedure SetWinNum (awinnum : byte);
-    procedure SetMono (_mono : boolean);
-    procedure SetBW (_bw : boolean);
-    procedure OpenConfigFiles;
-    procedure Idle; virtual;
-    procedure InitStatusLine; virtual;
-    procedure InitMenuBar; virtual;
     procedure HandleEvent(var Event : TEvent); virtual;
+    procedure SetBW (_bw : boolean);
+    procedure SetMono (_mono : boolean);
+    procedure SetWinNum (awinnum : byte);
+    procedure Open(FName, Path : String);
+    procedure OpenConfigFiles;
+    function OpenEditor(theFile: FNameStr; isClip, Visible: Boolean): PEditWindow;
     procedure OutOfMemory; virtual;
     procedure ToggleBackupFiles;
-    procedure About;
-    procedure ColorSelDialog;
-    destructor Done; virtual;
   end;
 
 implementation
@@ -89,7 +92,7 @@ begin
     hcSave : Hint := 'Save the file in the active edit window';
     hcPrint : Hint := 'Print the contents of the active edit window';
     hcDosShell : Hint := 'Temporarily exit to DOS';
-    hcExit : Hint := 'Exit SysEdit';
+    hcExit : Hint := 'Exit System Configuration Editor';
     hcUndo : Hint := 'Undo the previous editor operation';
     hcCut : Hint := 'Removes the current selection and copies it to the clipboard';
     hcCopy : Hint := 'Copies the current selection to the clipboard';
@@ -123,35 +126,6 @@ begin
   end;
 end;
 
-function OpenEditor(theFile: FNameStr; isClip, Visible: Boolean): PEditWindow;
-(*
-The OpenEditor is used by the event handler to actually open files. It can
-generate a new editor window, or create an editor window for an existing file
-*)
-
-var
-  P: PWindow;
-  R: TRect;
-begin
-  DeskTop^.GetExtent(R);
-  if isClip then
-    P := New(PEditWindow, Init(R, theFile, wnNoNumber))
-  else
-    P := New(PEditWindow, Init(R, theFile, WinNum));
-  if not Visible then P^.Hide;
-   { P^.Palette := wpCyanWindow; }
-  OpenEditor := PEditWindow(Application^.InsertWindow(P));
-  if not isClip then
-    inc(WinNum);
-end;
-
-procedure Open(FName, Path : String);
-var
-  P : PathStr;
-begin
-  P := FSearch(FName, Path);
-  If Length(P) <> 0 then OpenEditor(FExpand(P), false, true);
-end;
 
 
 (*
@@ -181,7 +155,13 @@ begin
     Insert(New(PButton, Init(R, '~C~lose', cmOK, bfDefault)));
   end;
   ExecuteDialog(AboutBox, nil);
+end;
 
+procedure TSysEdit.AdjustCommands;
+var WinCount : string;
+begin
+  setCmdState([cmSave, cmSaveAs, cmCut, cmCopy, cmPaste, cmClear,
+    cmUndo, cmPrint, cmClose, cmFind, cmReplace, cmSearchAgain], WinNum > 0);
 end;
 
 destructor TSysEdit.Done;
@@ -218,7 +198,7 @@ begin
   GetWinNum := WinNum;
 end;
 
- procedure TSysEdit.HandleEvent;
+procedure TSysEdit.HandleEvent;
 (*
   Event handler code
 *)
@@ -241,21 +221,22 @@ end;
 { Main portion of event handler }
 begin
   inherited HandleEvent(Event);
-  if Event.What = evCommand then
-  case Event.Command of
-    cmOptionsVideo   : ChangeVideo;
-    cmColors         : ColorSelDialog;
-    cmClipShow       : ShowClip;
-    cmChangeDir      : ChangeDir;
-    cmAbout          : About;
-   else
-     exit;
+  case Event.What of
+    evCommand : case Event.Command of
+      cmOptionsVideo   : ChangeVideo;
+      cmColors         : ColorSelDialog;
+      cmClipShow       : ShowClip;
+      cmChangeDir      : ChangeDir;
+      cmAbout          : About;
+    end;
   end;
   ClearEvent(Event);
 end;
 
 procedure TSysEdit.Idle;
 begin
+  AdjustCommands;
+  inherited Idle;
 end;
 
 constructor TSysEdit.Init(_mono, _bw : boolean);
@@ -271,9 +252,8 @@ begin
   cmdSet := [cmOpen, cmSave, cmSaveAs, cmCut, cmCopy, cmPaste, cmClear,
     cmUndo, cmPrint, cmFind, cmReplace, cmSearchAgain];
   MaxHeapSize := 4096;
-  winNum := 1;
   inherited Init;
-  Logger := New(PEventLog, Init('se.log', true));
+  Logger := New(PEventLog, Init('se.log', false));
   Logger^.LogEvent(elInfo,'Application started');
   if _mono then
     begin
@@ -296,6 +276,7 @@ begin
     Clipboard := ClipWindow^.Editor;
     Clipboard^.CanUndo := False;
   end;
+  WinNum := 1;
   OpenConfigFiles;
   Logger^.LogEvent(elInfo,'Opening configuration files');
   Cascade;
@@ -360,30 +341,61 @@ begin
   IsMono := (Mono = True);
 end;
 
+procedure TSysEdit.Open(FName, Path : String);
+var
+  P : PathStr;
+begin
+  P := FSearch(FName, Path);
+  If Length(P) <> 0 then OpenEditor(FExpand(P), false, true);
+end;
+
 procedure TSysEdit.OpenConfigFiles;
 
 var
   D : String[3];
   R : Registers;
+  SearchPath : String;
 
 begin
-  Open('WIN.INI', GetEnv('PATH'));
-  Open('SYSTEM.INI', GetEnv('PATH'));
-  Open('PROTOCOL.INI', GetEnv('PATH'));
-  Open('AUTOEXEC.NT', GetEnv('PATH'));
-  Open('CONFIG.NT', GetEnv('PATH'));
-  Open('4DOS.INI', GetEnv('PATH'));
-  r.ah := $19;
+  SearchPath := GetEnv('PATH');
+  Logger^.LogEvent(elInfo,'Search path: '+ SearchPath);
+  Open('WIN.INI', SearchPath);
+  Open('SYSTEM.INI', SearchPath);
+  Open('PROTOCOL.INI', SearchPath);
+  Open('AUTOEXEC.NT', SearchPath);
+  Open('CONFIG.NT', SearchPath);
+  Open('4DOS.INI', SearchPath);
+  r.ax := $3305;
   msdos(r);
-  D := chr((65+r.al))+':\';
+  D := chr((64+r.dl))+':\';
+  Logger^.LogEvent(elInfo,'Boot drive letter: '+ D);
   Open('AUTOEXEC.BAT', D);
   Open('CONFIG.SYS', D);
   Open('FDCONFIG.SYS', D);
+  Open('FDAUTO.BAT', D);
 end; (* OpenConfigFiles *)
 
+function TSysEdit.OpenEditor(theFile: FNameStr; isClip, Visible: Boolean): PEditWindow;
+(*
+The OpenEditor is used by the event handler to actually open files. It can
+generate a new editor window, or create an editor window for an existing file
+*)
 
-
-
+var
+  P: PWindow;
+  R: TRect;
+begin
+  DeskTop^.GetExtent(R);
+  if isClip then
+    P := New(PEditWindow, Init(R, theFile, wnNoNumber))
+  else
+    P := New(PEditWindow, Init(R, theFile, WinNum));
+  if not Visible then P^.Hide;
+   { P^.Palette := wpCyanWindow; }
+  OpenEditor := PEditWindow(Application^.InsertWindow(P));
+  if not isClip then
+    inc(WinNum);
+end;
 
 procedure TSysEdit.OutOfMemory;
 begin
