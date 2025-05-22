@@ -7,7 +7,7 @@
 .swap
 
 !if !$d(TPROOT)
-TPROOT=\TP7
+TPROOT=\BORLAND\TP7
 !endif
 
 !if !$d(ARCTOOL)
@@ -15,7 +15,7 @@ ARCTOOL=\PKZIP
 !endif
 
 !if !$d(CCROOT)
-CCROOT=\TC
+CCROOT=\BORLAND\TC
 !endif
 
 #ASM=a86
@@ -30,7 +30,7 @@ CCONFIG=\projects\tedit\ctopas.cfg
 !endif
 
 !if !$d(PCONFIG)
-PCONFIG=\tp7\bin
+PCONFIG=$(TPROOT)\tp7\bin
 !endif
 
 !if !$d(INCLUDE)

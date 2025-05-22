@@ -13,12 +13,12 @@
 {$X+,S-}
 
 
-uses Dos, seui, seconst, Strings, Drivers, GetOpt;
+uses App, Dos, seui, seconst, Strings, Drivers, GetOpt;
 
 var
   Parser : PGetOpt;
   Option, Value, S : String;
-  Editor     : TSysEdit;
+  (* Editor     : TSysEdit; *)
   Mono, BW   :  Boolean;
   i          : byte;
   progname   : string[8];
@@ -39,11 +39,11 @@ var
   S : String;
 
 begin
-  FormatStr(S, sBanner, VERSION);
+  (* FormatStr(S, sBanner, VERSION);
   PrintStr(S);
-  PrintStr(#9+Copy(RCSRev,2,(Length(RCSRev) - 2)));
+  PrintStr(#9+Copy(RCSRev,2,(Length(RCSRev) - 2))); *)
   PrintStr(#13#10#13#10'Editor for system configuration files'#13#10#13#10);
-  PrintStr(progname+' [/B] [/BW] [/M] [/?]'#13#10#13#10);
+  PrintStr(progname+' [-b] [-bw] [-m] [-h]'#13#10#13#10);
   PrintStr('  -b   - turns off the auto backup feature'#13#10);
   PrintStr('  -bw  - show in black and white on a color monitor'#13#10);
   PrintStr('  -m   - force monochrome mode'#13#10);
@@ -77,7 +77,7 @@ begin
 
   if Lo(DosVersion) < 3 then begin
     PrintStr('System Config Editor requires DOS 3.0 or higher'#13#10);
-    halt(255);
+    halt(erDosVersion);
   end;
 
   if paramstr(0) <> '' then
@@ -98,7 +98,7 @@ begin
           if Option = 'B' then
             begin
               Writeln(#9' * No Backup Files');
-              Editor.ToggleBackupFiles;
+              PSCApp(Application)^.ToggleBackupFiles;
             end;
           if Option = 'BW' then
             begin
@@ -114,7 +114,7 @@ begin
         Dispose(Parser, Done);
     end;
 
-  Editor.Init(Mono, BW);
-  Editor.Run;
-  Editor.Done;
+  Application := New(PSCApp, Init(Mono, BW));
+  Application^.Run;
+  Dispose(Application, Done);
 end.

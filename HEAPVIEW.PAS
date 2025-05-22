@@ -44,4 +44,5 @@ procedure THeapView.Update;
 begin
   if (OldMem <> MemAvail) then DrawView;
 end;
+
 end.

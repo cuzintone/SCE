@@ -6,7 +6,7 @@ Initial revision
 
         2015-03-03   adg   Move Hints into the private section of this unit
                            since there is no code that needs to manipulate
-                           it directly. The only exposed type is the TSysEdit
+                           it directly. The only exposed type is the TSCapp
 
 
 
@@ -44,8 +44,8 @@ uses Strings, ColorSel, App, Editors, StdDlg, Dialogs, Memory, MsgBox,
      Objects, Menus, Drivers, Views, EventLog;
 
 type
-  PSysEdit = ^TSysEdit;
-  TSysEdit = object(TApplication)
+  PSCApp = ^TSCapp;
+  TSCapp = object(TApplication)
     Logger : PEventLog;
     ClipWindow : PEditWindow;  (* Create clipboard window *)
     BW, Mono : Boolean;
@@ -55,21 +55,21 @@ type
     procedure AdjustCommands;
     procedure ColorSelDialog;
     destructor Done; virtual;
-    constructor Init(_mono, _bw : boolean);
+    function GetWinNum : byte;
+    procedure HandleEvent(var Event : TEvent); virtual;
     procedure Idle; virtual;
+    constructor Init(_mono, _bw : boolean);
     procedure InitMenuBar; virtual;
     procedure InitStatusLine; virtual;
     function IsBW : boolean;
     function IsMono : boolean;
-    function GetWinNum : byte;
-    procedure HandleEvent(var Event : TEvent); virtual;
-    procedure SetBW (_bw : boolean);
-    procedure SetMono (_mono : boolean);
-    procedure SetWinNum (awinnum : byte);
     procedure Open(FName, Path : String);
     procedure OpenConfigFiles;
     function OpenEditor(theFile: FNameStr; isClip, Visible: Boolean): PEditWindow;
     procedure OutOfMemory; virtual;
+    procedure SetBW (_bw : boolean);
+    procedure SetMono (_mono : boolean);
+    procedure SetWinNum (awinnum : byte);
     procedure ToggleBackupFiles;
   end;
 
@@ -83,6 +83,8 @@ type
     function Hint (AHelpCtx : Word) : String; virtual;
   end;
 
+
+{ -- Code for Status line hints -- }
 
 function THintStatusLine.Hint(AHelpCtx : Word) : String;
 begin
@@ -126,12 +128,9 @@ begin
   end;
 end;
 
+{ -- Turbo Vision Code begins here for the user interface -- }
 
-
-(*
-  Turbo Vision Code begins here for the user interface
-*)
-procedure TSysEdit.About;
+procedure TSCapp.About;
 {
         Draws about box
 }
@@ -157,14 +156,14 @@ begin
   ExecuteDialog(AboutBox, nil);
 end;
 
-procedure TSysEdit.AdjustCommands;
+procedure TSCapp.AdjustCommands;
 var WinCount : string;
 begin
   setCmdState([cmSave, cmSaveAs, cmCut, cmCopy, cmPaste, cmClear,
     cmUndo, cmPrint, cmClose, cmFind, cmReplace, cmSearchAgain], WinNum > 0);
 end;
 
-destructor TSysEdit.Done;
+destructor TSCapp.Done;
 begin
 
   inherited Done;
@@ -173,7 +172,7 @@ begin
 end;
 
 
-procedure TSysEdit.ColorSelDialog;
+procedure TSCapp.ColorSelDialog;
 var
   R : TRect;
   D : PDialog;
@@ -193,12 +192,12 @@ begin
   end;
 end;
 
-function TSysEdit.GetWinNum : byte;
+function TSCapp.GetWinNum : byte;
 begin
   GetWinNum := WinNum;
 end;
 
-procedure TSysEdit.HandleEvent;
+procedure TSCapp.HandleEvent;
 (*
   Event handler code
 *)
@@ -233,13 +232,13 @@ begin
   ClearEvent(Event);
 end;
 
-procedure TSysEdit.Idle;
+procedure TSCapp.Idle;
 begin
   AdjustCommands;
   inherited Idle;
 end;
 
-constructor TSysEdit.Init(_mono, _bw : boolean);
+constructor TSCapp.Init(_mono, _bw : boolean);
 (*
         Application initialization, sets up the heapsize and the clipboard
 *)
@@ -282,12 +281,14 @@ begin
   Cascade;
 end;
 
-procedure TSysEdit.InitMenuBar;
+procedure TSCapp.InitMenuBar;
 var R : TRect;
 begin
   GetExtent(R);
   R.B.Y := R.A.Y + 1;
   MenuBar := New(PMenuBar, Init(R, NewMenu(
+    NewSubMenu('~'#240'~', hcNoContext, NewMenu(
+      NewItem('~A~bout...', '', kbNoKey, cmAbout, hcAbout, nil)),
     NewSubMenu('~F~ile', hcFileMenu, NewMenu(
       NewItem('~S~ave','F2', kbF2, cmSave, hcSave,
       NewItem('~P~rint', 'Ctrl+PrtScr', kbCtrlPrtSc, cmPrint, hcPrint,
@@ -310,12 +311,11 @@ begin
     nil))),
     NewSubMenu('~W~indow', hcWindowMenu, NewMenu(
       StdWindowMenuItems(nil)),
-    NewSubMenu('~H~elp', hcHelpMenu, NewMenu(
-      NewItem('~A~bout...', '', kbNoKey, cmAbout, hcAbout, nil)),
+
     nil)))))))));
 end;
 
-procedure TSysEdit.InitStatusLine;
+procedure TSCapp.InitStatusLine;
 var R : TRect;
 begin
   GetExtent(R);                         (* get application boundaries *)
@@ -331,17 +331,17 @@ begin
       nil), nil))));
 end;
 
-function TSysEdit.IsBW : Boolean;
+function TSCapp.IsBW : Boolean;
 begin
   IsBW := (BW = true);
 end;
 
-function TSysEdit.IsMono : boolean;
+function TSCapp.IsMono : boolean;
 begin
   IsMono := (Mono = True);
 end;
 
-procedure TSysEdit.Open(FName, Path : String);
+procedure TSCapp.Open(FName, Path : String);
 var
   P : PathStr;
 begin
@@ -349,7 +349,7 @@ begin
   If Length(P) <> 0 then OpenEditor(FExpand(P), false, true);
 end;
 
-procedure TSysEdit.OpenConfigFiles;
+procedure TSCapp.OpenConfigFiles;
 
 var
   D : String[3];
@@ -365,17 +365,28 @@ begin
   Open('AUTOEXEC.NT', SearchPath);
   Open('CONFIG.NT', SearchPath);
   Open('4DOS.INI', SearchPath);
-  r.ax := $3305;
-  msdos(r);
-  D := chr((64+r.dl))+':\';
-  Logger^.LogEvent(elInfo,'Boot drive letter: '+ D);
+  if Lo(DosVersion) >= 5 then
+    begin
+      r.ax := $3305;
+      msdos(r);
+      D := chr((64+r.dl))+':\';
+      Logger^.LogEvent(elInfo,'Boot drive letter: '+ D);
+    end
+  else
+    begin
+      r.ah := $19;
+      msdos(r);
+      D := chr((65+r.al))+':\';
+      Logger^.LogEvent(elInfo,'Default drive letter: '+ D);
+    end;
+
   Open('AUTOEXEC.BAT', D);
   Open('CONFIG.SYS', D);
   Open('FDCONFIG.SYS', D);
   Open('FDAUTO.BAT', D);
 end; (* OpenConfigFiles *)
 
-function TSysEdit.OpenEditor(theFile: FNameStr; isClip, Visible: Boolean): PEditWindow;
+function TSCapp.OpenEditor(theFile: FNameStr; isClip, Visible: Boolean): PEditWindow;
 (*
 The OpenEditor is used by the event handler to actually open files. It can
 generate a new editor window, or create an editor window for an existing file
@@ -397,32 +408,32 @@ begin
     inc(WinNum);
 end;
 
-procedure TSysEdit.OutOfMemory;
+procedure TSCapp.OutOfMemory;
 begin
   MessageBox('Not enough memory for this operation.',
     nil, mfError + mfOkButton);
   Logger^.LogEvent(elError,'Memory allocation error');
 end;
 
-procedure TSysEdit.ToggleBackupFiles;
-begin
-  EditorFlags := EditorFlags or efBackupFiles;
-  Logger^.LogEvent(elInfo, 'Toggling backup file state');
-end;
-
-procedure TSysEdit.SetBW(_bw : boolean);
+procedure TSCapp.SetBW(_bw : boolean);
 begin
   BW := _bw;
 end;
 
-procedure TSysEdit.SetMono(_mono : boolean);
+procedure TSCapp.SetMono(_mono : boolean);
 begin
   Mono := _mono;
 end;
 
-procedure TSysEdit.SetWinNum(awinnum : byte);
+procedure TSCapp.SetWinNum(awinnum : byte);
 begin
   WinNum := awinnum;
+end;
+
+procedure TSCapp.ToggleBackupFiles;
+begin
+  EditorFlags := EditorFlags or efBackupFiles;
+  Logger^.LogEvent(elInfo, 'Toggling backup file state');
 end;
 
 {$IFDEF Debug}

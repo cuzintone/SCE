@@ -48,7 +48,10 @@ const
   ID : String = 'System Configuration Editor';
   Copyright : String = 'Copyright (C) 2015 AGE Software';
   sBanner = '%s - v%d.%d.%06d';
-  VERSION : TVersion = (OSName:@ID;Maj:1;Min:0;Rev:150303);
+  VERSION : TVersion = (OSName:@ID;Maj:1;Min:0;Rev:202404);
+
+  { Command Constants }
+
   cmAbout        = 100;
   cmClipShow     = cmAbout + 1;
   cmHelp         = cmClipShow + 1;
@@ -57,6 +60,8 @@ const
   cmOptionsSave  = cmOptionsVideo + 1;
   cmOptionsLoad  = cmOptionsSave + 1;
   cmColors       = cmOptionsLoad + 1;
+
+  { Help context constants }
 
   hcPrint        = 1000;
   hcFind         = hcPrint + 1;
@@ -76,12 +81,9 @@ const
   hcWindowMenu   = hcOptionsMenu + 1;
   hcHelpMenu     = hcWindowMenu + 1;
 
+  { Error constants }
 
-  WinNum : byte = 1;
-  HeapSize = 48 * (1024 div 16);    (* 48K buffer *)
-
-var
-  Mono, BW : Boolean;
+  erDosVersion   = 1;
 
 implementation
 {$IFDEF Debug}
