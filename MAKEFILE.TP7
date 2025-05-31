@@ -1,0 +1,85 @@
+#
+#  System Configuration Editor Makefile
+#  Borland Makefile
+#
+#
+.autodepend
+.swap
+
+!if !$d(TPROOT)
+TPROOT=\BORLAND\TP7
+!endif
+
+!if !$d(ARCTOOL)
+ARCTOOL=\PKZIP
+!endif
+
+!if !$d(CCROOT)
+CCROOT=\BORLAND\TC
+!endif
+
+#ASM=a86
+ARC=$(ARCTOOL)\PKZIP
+ARCOPTIONS=
+#CC=$(CCROOT)\bin\tcc
+PC = $(TPROOT)\bin\tpc
+COPTIONS=-c -ml -wrvl -p -k- -r- -u- -zCCODE -zP -zA -zRCONST -zS -zT -zDDATA -zG -zB
+POPTIONS=/Uc:\borland\tp7\units
+!if !$d(CCONFIG)
+CCONFIG=\projects\sce\ctopas.cfg
+!endif
+
+!if !$d(PCONFIG)
+PCONFIG=$(TPROOT)\bin
+!endif
+
+!if !$d(INCLUDE)
+INCLUDE=\tc\include;.\\
+!endif
+
+!if !$d(LIBS)
+LIBS=\tc\lib;\dev\lib
+!endif
+
+# General make rules
+
+.pas.tpu:
+  $(PC) $< /T$(PCONFIG)
+
+.pas.exe:
+  $(PC) $< /T$(PCONFIG)                                              
+
+.c.obj:
+  $(CC) +$(CCONFIG) -I$(INCLUDE) -L$(LIBS) $<
+
+.cpp.obj:
+  $(CC) +$(CCONFIG) -I$(INCLUDE) -L$(LIBS) $<
+
+.asm.obj:
+  $(ASM) $<,$*.obj;
+
+se.exe: seconst.tpu eventlog.tpu getopt.tpu seui.tpu se.pas  
+
+distpkg :
+ @$(ARC) $(ARCOPTIONS) dist\se se.exe *.doc copying se.lsm
+ @$(ARC) $(ARCOPTIONS) dist\sesrc se.pas seui.pas eventlog.pas getopt.pas seconst.pas copying makefile.*
+
+
+seconst.tpu : seconst.pas
+
+seui.tpu : seui.pas
+
+getopt.tpu : getopt.pas
+
+eventlog.tpu : eventlog.pas
+
+depend : seconst.tpu eventlog.tpu getopt.tpu seui.tpu
+
+all : seconst.tpu seui.tpu sce.exe
+
+clean :
+ @echo Performing cleanup...please wait...
+ @if exist *.map del *.map > nul
+ @del *.tpu > nul
+ @del *.exe > nul
+ @del *.bak > nul
