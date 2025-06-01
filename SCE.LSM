@@ -1,0 +1,15 @@
+Begin3
+Title:          SCE
+Version:        1.0.150303
+Entered-Date:   2025-04-10
+Description:    System Configuration Editor
+Summary:        SCE is a configuration file editor based on Turbo Pascal 7's
+                Turbo Vision. It automatically opens system configuration files
+                such as FDAUTO.BAT, CONFIG.NT and WIN.INI for editing.
+Keywords:       edit, system, config, dos, windows
+Author:         Anthony Gordon
+Primary-Site:   https://github.com/cuzintone/SCE
+Platforms:      DOS, Windows
+Copying-Policy: GNU General Public License, version 2
+Modified-Date:  2025-05-17.7
+End
