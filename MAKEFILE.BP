@@ -91,6 +91,16 @@ fdpkg : distpkg
   @$(ARC) $(ARCOPTIONS) .\fdpkg\source\sce\sources se.pas seui.pas eventlog.pas getopt.pas seconst.pas copying makefile.*
   @$(ARC) $(ARCOPTIONS) .\dist\sce .\fdpkg\*.* -rp
 
+release : fdpkg
+ @if exist *.map del *.map > nul
+ @if exist *.tpu del *.tpu > nul
+ @if exist *.tpp del *.tpp > nul
+ @if exist *.exe del *.exe > nul
+ @if exist *.bak del *.bak > nul
+ @if exist *.log del *.log > nul
+ @deltree /y fdpkg
+
+ 
 clean :
  @echo Performing cleanup...please wait...
  @deltree /y dist
