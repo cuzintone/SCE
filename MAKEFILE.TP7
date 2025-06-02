@@ -60,11 +60,6 @@ LIBS=\tc\lib;\dev\lib
 
 se.exe: seconst.tpu eventlog.tpu getopt.tpu seui.tpu se.pas  
 
-distpkg :
- @$(ARC) $(ARCOPTIONS) dist\se se.exe *.doc copying se.lsm
- @$(ARC) $(ARCOPTIONS) dist\sesrc se.pas seui.pas eventlog.pas getopt.pas seconst.pas copying makefile.*
-
-
 seconst.tpu : seconst.pas
 
 seui.tpu : seui.pas
@@ -75,11 +70,35 @@ eventlog.tpu : eventlog.pas
 
 depend : seconst.tpu eventlog.tpu getopt.tpu seui.tpu
 
-all : seconst.tpu seui.tpu sce.exe
+#all : seconst.tpu seui.tpu se.exe
+
+distpkg : se.exe
+ @if not exist .\dist md .\dist
+ @$(ARC) $(ARCOPTIONS) dist\se se.exe *.doc readme.* copying sce.lsm
+ @$(ARC) $(ARCOPTIONS) dist\sources se.pas seui.pas eventlog.pas getopt.pas seconst.pas copying makefile.*
+
+fdpkg : distpkg
+  @if not exist .\fdpkg\nul md .\fdpkg  
+  @if not exist .\fdpkg\appinfo\nul md .\fdpkg\appinfo
+  @if not exist .\fdpkg\edit\nul md .\fdpkg\edit
+  @if not exist .\fdpkg\edit\sce\nul md .\fdpkg\edit\sce
+  @if not exist .\fdpkg\source\nul md .\fdpkg\source
+  @if not exist .\fdpkg\source\sce\nul md .\fdpkg\source\sce
+  @copy sce.lsm .\fdpkg\appinfo
+  @copy se.exe .\fdpkg\edit\sce
+  @copy readme.md .\fdpkg\edit\sce
+  @copy copying .\fdpkg\edit\sce
+  @$(ARC) $(ARCOPTIONS) .\fdpkg\source\sce\sources se.pas seui.pas eventlog.pas getopt.pas seconst.pas copying makefile.*
+  @$(ARC) $(ARCOPTIONS) .\dist\sce .\fdpkg\*.* -rp
 
 clean :
  @echo Performing cleanup...please wait...
+ @deltree /y dist
+ @deltree /y fdpkg
  @if exist *.map del *.map > nul
- @del *.tpu > nul
- @del *.exe > nul
- @del *.bak > nul
+ @if exist *.tpu del *.tpu > nul
+ @if exist *.tpp del *.tpp > nul
+ @if exist *.exe del *.exe > nul
+ @if exist *.bak del *.bak > nul
+ @if exist *.log del *.log > nul
+ @if exist .\bin\nul del bin\*.*  /y > nul

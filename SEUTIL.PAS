@@ -1,4 +1,14 @@
-unit SEUtil;
+(*
+        System Configuration Editor
+        Version 1.00
+
+        Copyright (C) AGE Software
+        All rights reserved
+
+        Purpose: Utility functions
+        FILENAME: SEUTIL.PAS
+
+*)unit SEUtil;
 
 interface
 

@@ -1,11 +1,11 @@
 (*
-        System Editor
+        System Configuration Editor
         Version 1.00
 
         Copyright (C) AGE Software
         All rights reserved
 
-        Purpose: Full screen system editor.
+        Purpose: Start up code and command line parsing.
         FILENAME: SE.PAS
 
 *)

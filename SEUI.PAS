@@ -6,31 +6,16 @@ Initial revision
 
         2015-03-03   adg   Move Hints into the private section of this unit
                            since there is no code that needs to manipulate
-                           it directly. The only exposed type is the TSCapp
+                           it directly. The only exposed type is the TSCApp
 
 
 
-        System Configuration System Configuration Editor
+        System Configuration Editor
         Version 1.0
         Written by Antony Gordon
         Copyright 2003 AGE Software
 
         ----------------------------------
-
-    This file is part of System Configuration Editor.
-    System Configuration Editor is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-    System Configuration Editor is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-    You should have received a copy of the GNU General Public License
-    along with System Configuration Editor.  If not, see <http://www.gnu.org/licenses/>.
-
-        ----------------------------------
-
 
         Filename: SEUI.PAS
         Contains Turbo Vision routines
@@ -44,8 +29,8 @@ uses Strings, ColorSel, App, Editors, StdDlg, Dialogs, Memory, MsgBox,
      Objects, Menus, Drivers, Views, EventLog;
 
 type
-  PSCApp = ^TSCapp;
-  TSCapp = object(TApplication)
+  PSCApp = ^TSCApp;
+  TSCApp = object(TApplication)
     Logger : PEventLog;
     ClipWindow : PEditWindow;  (* Create clipboard window *)
     BW, Mono : Boolean;
@@ -130,7 +115,7 @@ end;
 
 { -- Turbo Vision Code begins here for the user interface -- }
 
-procedure TSCapp.About;
+procedure TSCApp.About;
 {
         Draws about box
 }
@@ -156,14 +141,14 @@ begin
   ExecuteDialog(AboutBox, nil);
 end;
 
-procedure TSCapp.AdjustCommands;
+procedure TSCApp.AdjustCommands;
 var WinCount : string;
 begin
   setCmdState([cmSave, cmSaveAs, cmCut, cmCopy, cmPaste, cmClear,
     cmUndo, cmPrint, cmClose, cmFind, cmReplace, cmSearchAgain], WinNum > 0);
 end;
 
-destructor TSCapp.Done;
+destructor TSCApp.Done;
 begin
 
   inherited Done;
@@ -172,7 +157,7 @@ begin
 end;
 
 
-procedure TSCapp.ColorSelDialog;
+procedure TSCApp.ColorSelDialog;
 var
   R : TRect;
   D : PDialog;
@@ -192,12 +177,12 @@ begin
   end;
 end;
 
-function TSCapp.GetWinNum : byte;
+function TSCApp.GetWinNum : byte;
 begin
   GetWinNum := WinNum;
 end;
 
-procedure TSCapp.HandleEvent;
+procedure TSCApp.HandleEvent;
 (*
   Event handler code
 *)
@@ -232,13 +217,13 @@ begin
   ClearEvent(Event);
 end;
 
-procedure TSCapp.Idle;
+procedure TSCApp.Idle;
 begin
   AdjustCommands;
   inherited Idle;
 end;
 
-constructor TSCapp.Init(_mono, _bw : boolean);
+constructor TSCApp.Init(_mono, _bw : boolean);
 (*
         Application initialization, sets up the heapsize and the clipboard
 *)
@@ -281,7 +266,7 @@ begin
   Cascade;
 end;
 
-procedure TSCapp.InitMenuBar;
+procedure TSCApp.InitMenuBar;
 var R : TRect;
 begin
   GetExtent(R);
@@ -315,7 +300,7 @@ begin
     nil)))))))));
 end;
 
-procedure TSCapp.InitStatusLine;
+procedure TSCApp.InitStatusLine;
 var R : TRect;
 begin
   GetExtent(R);                         (* get application boundaries *)
@@ -331,17 +316,17 @@ begin
       nil), nil))));
 end;
 
-function TSCapp.IsBW : Boolean;
+function TSCApp.IsBW : Boolean;
 begin
   IsBW := (BW = true);
 end;
 
-function TSCapp.IsMono : boolean;
+function TSCApp.IsMono : boolean;
 begin
   IsMono := (Mono = True);
 end;
 
-procedure TSCapp.Open(FName, Path : String);
+procedure TSCApp.Open(FName, Path : String);
 var
   P : PathStr;
 begin
@@ -349,7 +334,7 @@ begin
   If Length(P) <> 0 then OpenEditor(FExpand(P), false, true);
 end;
 
-procedure TSCapp.OpenConfigFiles;
+procedure TSCApp.OpenConfigFiles;
 
 var
   D : String[3];
@@ -386,7 +371,7 @@ begin
   Open('FDAUTO.BAT', D);
 end; (* OpenConfigFiles *)
 
-function TSCapp.OpenEditor(theFile: FNameStr; isClip, Visible: Boolean): PEditWindow;
+function TSCApp.OpenEditor(theFile: FNameStr; isClip, Visible: Boolean): PEditWindow;
 (*
 The OpenEditor is used by the event handler to actually open files. It can
 generate a new editor window, or create an editor window for an existing file
@@ -408,29 +393,29 @@ begin
     inc(WinNum);
 end;
 
-procedure TSCapp.OutOfMemory;
+procedure TSCApp.OutOfMemory;
 begin
   MessageBox('Not enough memory for this operation.',
     nil, mfError + mfOkButton);
   Logger^.LogEvent(elError,'Memory allocation error');
 end;
 
-procedure TSCapp.SetBW(_bw : boolean);
+procedure TSCApp.SetBW(_bw : boolean);
 begin
   BW := _bw;
 end;
 
-procedure TSCapp.SetMono(_mono : boolean);
+procedure TSCApp.SetMono(_mono : boolean);
 begin
   Mono := _mono;
 end;
 
-procedure TSCapp.SetWinNum(awinnum : byte);
+procedure TSCApp.SetWinNum(awinnum : byte);
 begin
   WinNum := awinnum;
 end;
 
-procedure TSCapp.ToggleBackupFiles;
+procedure TSCApp.ToggleBackupFiles;
 begin
   EditorFlags := EditorFlags or efBackupFiles;
   Logger^.LogEvent(elInfo, 'Toggling backup file state');

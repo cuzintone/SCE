@@ -1,5 +1,5 @@
 (*
-        System Editor
+        System Configuration Editor
         Version 1.00
 
         Copyright (C) AGE Software

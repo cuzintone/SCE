@@ -4,21 +4,7 @@
         System Configuration Editor
         Version 1.0
         Written by Antony Gordon
-        Copyright 2003 AGE Software
-
-        ----------------------------------
-
-    This file is part of System Configuration Editor.
-    System Configuration Editor is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-    System Configuration Editor is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-    You should have received a copy of the GNU General Public License
-    along with System Configuration Editor.  If not, see <http://www.gnu.org/licenses/>.
+        Copyright AGE Software
 
         ----------------------------------
 
@@ -46,9 +32,9 @@ const
   RCSID : String = '$Id: SECONST.PAS 1.0 2015/01/15 21:13:38 tony Exp tony $';
   RCSRev : String = '$Revision: 1.0 $';
   ID : String = 'System Configuration Editor';
-  Copyright : String = 'Copyright (C) 2015 AGE Software';
+  Copyright : String = 'Copyright (C) 2025 AGE Software';
   sBanner = '%s - v%d.%d.%06d';
-  VERSION : TVersion = (OSName:@ID;Maj:1;Min:0;Rev:202404);
+  VERSION : TVersion = (OSName:@ID;Maj:1;Min:0;Rev:202504);
 
   { Command Constants }
 
