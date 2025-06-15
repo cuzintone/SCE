@@ -1,5 +1,5 @@
 (*
-        System Configuration Editor
+        System Editor
         Version 1.00
 
         Copyright (C) AGE Software
@@ -84,9 +84,15 @@ begin
             NextOption := true;
             Exit;
         end;
-        (* TODO: parsing MS-DOS style command lines with / will go here *)
-
-        Inc(CurrentIndex);
+      (* Now do DOS style command line switches *)
+      if (Length(Arg^) > 1) and (Arg^[1] = '/') then
+        begin
+          Opt := Copy(Arg^, 2, Length(Arg^));
+          Inc(CurrentIndex);
+          NextOption := true;
+          Exit;
+        end;
+      Inc(CurrentIndex);
     end;
 end;
 
