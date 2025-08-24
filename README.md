@@ -14,14 +14,6 @@ a multi file editor to open each individual file, SCE automatically
 searches for an opens these files and displays them in a cascading
 windows.
 
-# Downloading
-
-The current version is compiled and ZIPped in the DIST directory.
-
- - SCE.ZIP     : FreeDOS Package compatible version
- - SE.ZIP      : Executable version
- - SOURCES.ZIP : Source files used in the project along with a Makefile for Turbo Pascal 7 and Borland Pascal 7
-
 # Helping with SCE
 
 ## BUG!!!!

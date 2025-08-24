@@ -130,12 +130,14 @@ begin
   with AboutBox^ do begin
     Options := Options or ofCentered;
     HelpCtx := hcAboutDlg;
-    R.Assign(1, 4, 54, 5);
+    R.Assign(1, 3, 54, 4);
     FormatStr(S, #3+sBanner, VERSION);
     Insert(New(PStaticText, Init(R, S)));
-    R.Assign(1, 6, 54, 7);
+    R.Assign(1, 5, 54, 6);
     Insert(New(PStaticText, Init(R, #3+Copyright)));
-    R.Assign(23, 8, 32, 10);
+    R.Assign(1, 7, 54, 8);
+    Insert(New(PStaticText, Init(R,#3+'GNU GPL 2.0')));
+    R.Assign(23, 9, 32, 11);
     Insert(New(PButton, Init(R, '~C~lose', cmOK, bfDefault)));
   end;
   ExecuteDialog(AboutBox, nil);
