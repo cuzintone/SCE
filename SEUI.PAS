@@ -31,7 +31,9 @@ uses Strings, ColorSel, App, Editors, StdDlg, Dialogs, Memory, MsgBox,
 type
   PSCApp = ^TSCApp;
   TSCApp = object(TApplication)
+  {$IFNDEF NOLOG}
     Logger : PEventLog;
+  {$ENDIF}
     ClipWindow : PEditWindow;  (* Create clipboard window *)
     BW, Mono : Boolean;
     WinNum : byte;
@@ -146,7 +148,7 @@ end;
 procedure TSCApp.AdjustCommands;
 var WinCount : string;
 begin
-  setCmdState([cmSave, cmSaveAs, cmCut, cmCopy, cmPaste, cmClear,
+  setCmdState([cmOpen, cmSave, cmSaveAs, cmCut, cmCopy, cmPaste, cmClear,
     cmUndo, cmPrint, cmClose, cmFind, cmReplace, cmSearchAgain], WinNum > 0);
 end;
 
@@ -154,8 +156,10 @@ destructor TSCApp.Done;
 begin
 
   inherited Done;
+  {$IFNDEF NOLOG}
   Logger^.LogEvent(elInfo,'Shutting down application');
   Dispose(Logger, Done);
+  {$ENDIF}
 end;
 
 
@@ -239,19 +243,25 @@ begin
     cmUndo, cmPrint, cmFind, cmReplace, cmSearchAgain];
   MaxHeapSize := 4096;
   inherited Init;
+  {$IFNDEF NOLOG}
   Logger := New(PEventLog, Init('se.log', false));
   Logger^.LogEvent(elInfo,'Application started');
+  {$ENDIF}
   if _mono then
     begin
       Mono := _mono;
       SetScreenMode(smMono);
+      {$IFNDEF NOLOG}
       Logger^.LogEvent(elInfo,'Monochrome mode selected');
+      {$ENDIF}
     end;
   if _bw then
     begin
       BW := _bw;
       SetScreenMode(smBW80);
+      {$IFNDEF NOLOG}
       Logger^.LogEvent(elInfo,'Black and white mode selected');
+      {$ENDIF}
     end;
 
   DisableCommands(cmdSet);
@@ -264,7 +274,9 @@ begin
   end;
   WinNum := 1;
   OpenConfigFiles;
+  {$IFNDEF NOLOG}
   Logger^.LogEvent(elInfo,'Opening configuration files');
+  {$ENDIF}
   Cascade;
 end;
 
@@ -277,11 +289,8 @@ begin
     NewSubMenu('~'#240'~', hcNoContext, NewMenu(
       NewItem('~A~bout...', '', kbNoKey, cmAbout, hcAbout, nil)),
     NewSubMenu('~F~ile', hcFileMenu, NewMenu(
-      NewItem('~S~ave','F2', kbF2, cmSave, hcSave,
-      NewItem('~P~rint', 'Ctrl+PrtScr', kbCtrlPrtSc, cmPrint, hcPrint,
-      NewItem('~D~OS Shell', '', kbNoKey, cmDosShell, hcDosShell,
-      NewItem('E~x~it','Alt+X', kbAltX, cmQuit, hcExit,
-      nil))))),
+      StdFileMenuItems(nil)
+      ),
     NewSubMenu('~E~dit', hcEditMenu, NewMenu(
       StdEditMenuItems(
       NewLine(
@@ -345,7 +354,9 @@ var
 
 begin
   SearchPath := GetEnv('PATH');
+  {$IFNDEF NOLOG}
   Logger^.LogEvent(elInfo,'Search path: '+ SearchPath);
+  {$ENDIF}
   Open('WIN.INI', SearchPath);
   Open('SYSTEM.INI', SearchPath);
   Open('PROTOCOL.INI', SearchPath);
@@ -357,14 +368,18 @@ begin
       r.ax := $3305;
       msdos(r);
       D := chr((64+r.dl))+':\';
+      {$IFNDEF NOLOG}
       Logger^.LogEvent(elInfo,'Boot drive letter: '+ D);
+      {$ENDIF}
     end
   else
     begin
       r.ah := $19;
       msdos(r);
       D := chr((65+r.al))+':\';
+      {$IFNDEF NOLOG}
       Logger^.LogEvent(elInfo,'Default drive letter: '+ D);
+      {$ENDIF}
     end;
 
   Open('AUTOEXEC.BAT', D);
@@ -399,7 +414,9 @@ procedure TSCApp.OutOfMemory;
 begin
   MessageBox('Not enough memory for this operation.',
     nil, mfError + mfOkButton);
+  {$IFNDEF NOLOG}
   Logger^.LogEvent(elError,'Memory allocation error');
+  {$ENDIF}
 end;
 
 procedure TSCApp.SetBW(_bw : boolean);
@@ -420,7 +437,9 @@ end;
 procedure TSCApp.ToggleBackupFiles;
 begin
   EditorFlags := EditorFlags or efBackupFiles;
+  {$IFNDEF NOLOG}
   Logger^.LogEvent(elInfo, 'Toggling backup file state');
+  {$ENDIF}
 end;
 
 {$IFDEF Debug}

@@ -30,7 +30,7 @@ CCONFIG=\projects\sce\ctopas.cfg
 !endif
 
 !if !$d(PCONFIG)
-PCONFIG=$(TPROOT)\bin
+PCONFIG=$(TPROOT)\bin $(POPTIONS)
 !endif
 
 !if !$d(INCLUDE)
