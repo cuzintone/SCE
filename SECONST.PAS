@@ -24,8 +24,8 @@ uses Objects;
 
 type
   TVersion = record
-    OSName :PString;
-    Maj, Min, Rev : longint;
+    AppName :PString;
+    Maj, Min, Patch, Build : longint;
   end;
 
 const
@@ -33,8 +33,8 @@ const
   RCSRev : String = '$Revision: 1.0 $';
   ID : String = 'System Configuration Editor';
   Copyright : String = 'Copyright (C) 2025 AGE Software';
-  sBanner = '%s - v%d.%d.%06d';
-  VERSION : TVersion = (OSName:@ID;Maj:1;Min:0;Rev:202506);
+  sBanner = '%s - v%d.%d.%d Build %06d';
+  VERSION : TVersion = (AppName:@ID;Maj:1;Min:1;Patch:0;Build:2507);
 
   { Command Constants }
 

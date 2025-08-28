@@ -24,13 +24,20 @@ ARCOPTIONS=
 #CC=$(CCROOT)\bin\tcc
 PC = $(TPROOT)\bin\bpc
 COPTIONS=-c -ml -wrvl -p -k- -r- -u- -zCCODE -zP -zA -zRCONST -zS -zT -zDDATA -zG -zB
-POPTIONS=/Uc:\borland\bp\units
+
+!if $d(NOLOG)
+POPTIONS=-Uc:\borland\bp\units -DNOLOG
+!else
+POPTIONS=-Uc:\borland\bp\units
+!endif
+
+
 !if !$d(CCONFIG)
 CCONFIG=\projects\sce\ctopas.cfg
 !endif
 
 !if !$d(PCONFIG)
-PCONFIG=$(TPROOT)\bin
+PCONFIG=$(TPROOT)\bin $(POPTIONS)
 !endif
 
 !if !$d(INCLUDE)
@@ -44,10 +51,10 @@ LIBS=\tc\lib;\dev\lib
 # General make rules
 
 .pas.tpu:
-  $(PC) $< $? /T$(PCONFIG)
+  $(PC) $< $? -T$(PCONFIG)
 
 .pas.exe:
-  $(PC) $< $? /T$(PCONFIG)                                              
+  $(PC) $< $? -T$(PCONFIG)                                              
 
 .c.obj:
   $(CC) +$(CCONFIG) -I$(INCLUDE) -L$(LIBS) $<
@@ -88,7 +95,7 @@ fdpkg : distpkg
   @copy se.exe .\fdpkg\edit\sce
   @copy readme.md .\fdpkg\edit\sce
   @copy copying .\fdpkg\edit\sce
-  @$(ARC) $(ARCOPTIONS) .\fdpkg\source\sce\sources se.pas seui.pas eventlog.pas getopt.pas seconst.pas copying makefile.*
+  @$(ARC) $(ARCOPTIONS) .\fdpkg\source\sce\sources se.pas seui.pas eventlog.pas getopt.pas seconst.pas copying makefile.bp makefile.tp7
   @$(ARC) $(ARCOPTIONS) .\dist\sce .\fdpkg\*.* -rp
 
 release : fdpkg
@@ -111,4 +118,4 @@ clean :
  @if exist *.exe del *.exe > nul
  @if exist *.bak del *.bak > nul
  @if exist *.log del *.log > nul
- @if exist .\bin\nul del bin\*.*  /y > nul
+
