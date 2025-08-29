@@ -24,7 +24,7 @@ ARCOPTIONS=
 #CC=$(CCROOT)\bin\tcc
 PC = $(TPROOT)\bin\tpc
 COPTIONS=-c -ml -wrvl -p -k- -r- -u- -zCCODE -zP -zA -zRCONST -zS -zT -zDDATA -zG -zB
-POPTIONS=/Uc:\borland\tp7\units
+POPTIONS=/U$(TPROOT)\units
 !if !$d(CCONFIG)
 CCONFIG=\projects\sce\ctopas.cfg
 !endif

@@ -26,9 +26,9 @@ PC = $(TPROOT)\bin\bpc
 COPTIONS=-c -ml -wrvl -p -k- -r- -u- -zCCODE -zP -zA -zRCONST -zS -zT -zDDATA -zG -zB
 
 !if $d(NOLOG)
-POPTIONS=-Uc:\borland\bp\units -DNOLOG
+POPTIONS=-U$(TPROOT)\units -DNOLOG
 !else
-POPTIONS=-Uc:\borland\bp\units
+POPTIONS=-U$(TPROOT)\units
 !endif
 
 

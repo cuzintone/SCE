@@ -34,7 +34,7 @@ const
   ID : String = 'System Configuration Editor';
   Copyright : String = 'Copyright (C) 2025 AGE Software';
   sBanner = '%s - v%d.%d.%d Build %06d';
-  VERSION : TVersion = (AppName:@ID;Maj:1;Min:1;Patch:0;Build:2507);
+  VERSION : TVersion = (AppName:@ID;Maj:1;Min:1;Patch:1;Build:2508);
 
   { Command Constants }
 
